@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width,maximum-scale=1.0,initial-scale=1.0,user-scalable=no" />
+	<title>粒子效果</title>
+	<style type="text/css">
+		* { margin: 0;padding: 0; }
+		html, body { width: 100%;height: 100%;overflow: hidden; }
+		#canvas { background: #003366; }
+	</style>
+</head>
+<body>
+	
+	<canvas id="canvas"></canvas>
+	<script type="text/javascript">
+		;(function(win, doc) {
+			// 定义相关变量
+			var width, height,
+				zoom,
+				ctx,
+				pointNum, ratio,
+				timer = null,
+				pointArr = [],
+				canvas = doc.getElementById('canvas'),
+				mouseX = -1, mouseY = -1;
+
+			mainBgFullScreen();
+
+			// 窗口改变事件
+			window.addEventListener('resize', function() {
+				if(timer) {
+					window.cancelAnimationFrame(timer);
+				}
+				mainBgFullScreen();
+			})
+
+			function mainBgFullScreen() {
+				width = doc.documentElement.clientWidth|| win.clientWidth || win.offsetWidth;
+				height = doc.documentElement.clientHeight || win.clientHeight || win.offsetHeight;
+				canvas.width = width;
+				canvas.height = height;
+				pointArr.splice(0, pointArr.length);
+				pointNum = getPonitNum();
+				zoom = getZoom();
+				// 放200个点
+				for(var i = 0; i < ~~(200*zoom); i++) {
+					pointArr.push(createPoint());
+				}
+				console.log(pointArr)
+				// 绘制canvas
+				if(canvas.getContext) {
+					ctx = canvas.getContext('2d');
+					ctx.fillStyle = '#fff';
+					ctx.strokeStyle = 'rgba(255,255,255,0)';
+					ctx.lineWidth = 1 * zoom;
+					drawCanvas(ctx);
+				}
+				// 鼠标事件
+				canvas.onmousemove = function(e) {
+					var ev = e || window.event;
+					mouseX = ev.offsetX;
+					mouseY = ev.offsetY;
+				}
+			}
+			// 绘制canvas
+			function drawCanvas() {
+				ctx.clearRect(0,0, canvas.width, canvas.height);
+				var len = pointArr.length;
+				for(var i = 0; i < len; i++) {
+					ctx.beginPath();
+					pointArr[i].x += pointArr[i].xsKew;
+					pointArr[i].y += pointArr[i].ysKew;
+					// 处理边缘碰撞
+					if(pointArr[i].x <= pointArr[i].r || pointArr[i].x >= canvas.width - pointArr[i].r) {
+						pointArr[i].xsKew = -pointArr[i].xsKew;
+						pointArr[i].x = pointArr[i].x + pointArr[i].xsKew;
+					}
+					if(pointArr[i].y <= pointArr[i].r || pointArr[i].y >= canvas.width - pointArr[i].r) {
+						pointArr[i].ysKew = -pointArr[i].ysKew;
+						pointArr[i].y = pointArr[i].y + pointArr[i].ysKew;
+					}
+					// 绘制点
+					ctx.arc(pointArr[i].x, pointArr[i].y, pointArr[i].r, 0, 2*Math.PI);
+					ctx.fill();
+					// 绘制线条
+					for(var j = 0; j < len; j++) {
+						if(j != i) {
+							drawLine(ctx, pointArr[i].x, pointArr[i].y, pointArr[j].x, pointArr[j].y);
+						}
+					}
+					if(mouseX > 0 && mouseY > 0) {
+						drawLine(ctx, mouseX, mouseY, pointArr[i].x, pointArr[i].y);
+					}
+				};
+				if(window.requestAnimationFrame) {
+					timer = window.requestAnimationFrame(drawCanvas);
+				} else if(window.webkitRequestAnimationFrame) {
+					timer = window.webkitRequestAnimationFrame(drawCanvas);
+				} else if(window.mozRequestAnimationFrame) {
+					timer = window.mozRequestAnimationFrame(drawCanvas);
+				} else {
+					timer = window.msRequestAnimationFrame(drawCanvas);
+				}
+			}
+			// 绘制线条
+			function drawLine(ctx, p1x, p1y, p2x, p2y) {
+				var xDistance = Math.abs(p1x - p2x);		// 计算两点之间的x距离
+				var yDistance = Math.abs(p1y - p2y);		// 计算两点之间的y距离
+				var distance = Math.sqrt(xDistance*xDistance + yDistance*yDistance);
+				if(distance <= 120) {
+					ctx.fillStyle = '#ffffff';
+					ctx.strokeStyle = 'rgba(255,255,255,' + (1-distance/120) + ')';
+					ctx.save();
+					ctx.beginPath();
+					ctx.moveTo(p1x, p1y);
+					ctx.lineTo(p2x, p2y);
+					ctx.stroke();
+					ctx.restore();
+				}
+			}
+			// 生成点的数量
+			function getPonitNum() {
+				if(width < 700) {
+					ratio = 0.4;
+					return 80;
+				}
+				if(width < 1000) {
+					ratio = 0.6;
+					return 100;
+				}
+				if(width < 1500) {
+					ratio = 0.8;
+					return 150;
+				}
+				if(width < 2100) {
+					ratio = 1;
+					return 200;
+				}
+			}
+			// 随机生成点
+			function createPoint() {
+				var xsKew = (Math.random() - 0.4) * zoom;
+				var ysKew = (Math.random() - 0.4) * zoom;
+				var r = ~~(Math.random() * 4 * zoom);
+				var x = ~~(Math.random() * (width - r)) + 2*r;
+				var y = ~~(Math.random() * (height - r)) + 2*r;
+				var point = {
+					x: x,
+					y: y,
+					xsKew: xsKew,
+					ysKew: ysKew,
+					r: r
+				}
+				return point;
+			}
+			// 获取页面的像素比
+			function getZoom() {
+				var zoom;
+				zoom = win.innerWidth/win.screen.width;
+				return ratio;
+			}
+
+		})(window,document);
+
+	</script>
+	
+</body>
+</html>
